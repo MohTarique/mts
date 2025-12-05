@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moh Tarique | Data Analyst Portfolio</title>
+    
+    <!-- 1. Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Load React & ReactDOM (Using Cloudflare CDN for better stability) -->
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- 3. Load Babel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+    <!-- Error Handling: Will log to console instead of blocking screen unless critical -->
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error("Global Error:", message, source, lineno);
+            // Only show alert if critical React variables are missing
+            if (message.includes("React is not defined")) {
+                const errorBox = document.createElement('div');
+                errorBox.style.cssText = 'position:fixed;top:0;left:0;width:100%;padding:20px;background:#fee2e2;color:#991b1b;z-index:9999;font-family:monospace;';
+                errorBox.innerHTML = `<strong>Critical Error:</strong> React failed to load. Please check your internet connection.<br><small>${message}</small>`;
+                document.body.appendChild(errorBox);
+            }
+        };
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        html { scroll-behavior: smooth; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- INTERNAL ICONS (Reliable SVG Paths) ---
+        const Icons = {
+            Github: ({ size = 24, className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+            ),
+            Linkedin: ({ size = 24, className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+            ),
+            Mail: ({ size = 24, className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            ),
+            Tableau: ({ size = 24, className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M12.0003 1.00006L10.2225 4.82229L6.40039 6.60006L10.2225 8.37784L12.0003 12.2001L13.778 8.37784L17.6003 6.60006L13.778 4.82229L12.0003 1.00006Z" /><path d="M2.7998 9.39996L1.6748 11.8375L4.40822e-05 12.9375L2.43754 14.05L3.55004 16.4875L4.66254 14.05L7.10004 12.9375L4.66254 11.8375L3.55004 9.39996H2.7998Z" /><path d="M21.1998 9.39996L20.0748 11.8375L17.6373 12.9375L20.0748 14.05L21.1998 16.4875L22.3123 14.05L24.7498 12.9375L22.3123 11.8375L21.1998 9.39996Z" /><path d="M11.9998 14.2L10.222 18.0222L6.39978 19.8L10.222 21.5777L11.9998 25.3999L13.7776 21.5777L17.5998 19.8L13.7776 18.0222L11.9998 14.2Z" opacity={0.8}/><path d="M12.0003 13.0001L8.80029 13.8001L5.60029 13.0001L8.80029 12.2001L12.0003 13.0001Z" opacity={0.3}/></svg>
+            ),
+            ExternalLink: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>),
+            Menu: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>),
+            X: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>),
+            ChevronDown: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>),
+            Terminal: ({ size = 24, className }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>),
+            Code: ({ size = 24, className }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>),
+            Database: ({ size = 24, className }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>),
+            Brain: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>),
+            BarChart2: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>),
+            Globe: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>),
+            MapIcon: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>),
+            BookOpen: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>),
+            Award: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>),
+            ImageIcon: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>),
+            Sparkles: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>),
+            Bot: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>),
+            Zap: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>),
+            Loader: ({ size = 24, className }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>),
+            Cpu: ({ size = 24 }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>),
+            FileText: ({ size = 24, className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            ),
+            Download: ({ size = 24, className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            ),
+        };
+
+        const Portfolio = () => {
+            const [activeSection, setActiveSection] = useState('home');
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const [isVisible, setIsVisible] = useState(false);
+            const [imageError, setImageError] = useState(false);
+
+            // AI State
+            const [aiInput, setAiInput] = useState('');
+            const [aiLoading, setAiLoading] = useState(false);
+            const [aiResult, setAiResult] = useState(null);
+            const [aiError, setAiError] = useState('');
+
+            useEffect(() => {
+                setIsVisible(true);
+                const handleScroll = () => {
+                    const sections = ['home', 'about', 'projects', 'skills', 'ai-architect', 'certifications'];
+                    const scrollPosition = window.scrollY + 100;
+
+                    for (const section of sections) {
+                        const element = document.getElementById(section);
+                        if (element && element.offsetTop <= scrollPosition && (element.offsetTop + element.offsetHeight) > scrollPosition) {
+                            setActiveSection(section);
+                        }
+                    }
+                };
+
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            const navLinks = [
+                { name: 'Home', href: '#home' },
+                { name: 'About', href: '#about' },
+                { name: 'Projects', href: '#projects' },
+                { name: 'Skills', href: '#skills' },
+                { name: 'AI Architect ✨', href: '#ai-architect' },
+                { name: 'Certifications', href: '#certifications' },
+            ];
+
+            const skills = {
+                languages: [
+                    { name: 'Python', level: 90 },
+                    { name: 'SQL', level: 85 },
+                    { name: 'Java', level: 70 },
+                ],
+                libraries: [
+                    'Pandas', 'NumPy', 'Matplotlib', 'Seaborn', 'Scikit-learn', 'XGBoost', 'Statsmodels'
+                ],
+                tools: [
+                    'Tableau', 'Power BI', 'Excel (Advanced)', 'PostgreSQL', 'MySQL', 'VS Code', 'Jupyter Notebook'
+                ],
+                concepts: [
+                    'EDA', 'Hypothesis Testing', 'Machine Learning', 'Data Cleaning', 'Prompt Engineering'
+                ]
+            };
+
+            const projects = [
+                {
+                    title: "Employee Churn Prediction",
+                    desc: "An end-to-end ML solution analyzing 12,000 employee records to predict attrition. Deployed as a web app.",
+                    image: "https://github.com/MohTarique/Employee-Churn-Prediction/blob/7cd6f9ad755896e8e3780bcb4ec62fde5c0094e4/images/Dashboard%201%20(3).png?raw=true",
+                    icon: <Icons.Brain size={28} />,
+                    iconColor: "text-teal-400",
+                    iconBg: "bg-teal-500/10",
+                    hoverBorder: "hover:border-teal-500",
+                    hoverShadow: "hover:shadow-teal-500/10",
+                    hoverText: "group-hover:text-teal-400",
+                    metrics: [
+                        { value: "97.4%", label: "Model Reliability" },
+                        { value: "12k+", label: "Records Analyzed" }
+                    ],
+                    tags: ['Python', 'XGBoost', 'Tableau', 'Flask', 'Render'],
+                    links: {
+                        github: "https://github.com/MohTarique/Employee-Churn-Prediction",
+                        live: "https://employee-churn-prediction-34nz.onrender.com/",
+                        readme: "https://github.com/MohTarique/Employee-Churn-Prediction/blob/master/README.md"
+                    }
+                },
+                {
+                    title: "Banking Loan Analysis",
+                    desc: "Comprehensive financial analysis of 2,900+ clients identifying key revenue drivers and risk segments.",
+                    image: "https://github.com/MohTarique/Banking_Loan_Analysis/blob/bbbfc85cd6faa62c63f9185a026e7140bf4c5688/Screenshot%20(64).png?raw=true",
+                    icon: <Icons.BarChart2 size={28} />,
+                    iconColor: "text-blue-400",
+                    iconBg: "bg-blue-500/10",
+                    hoverBorder: "hover:border-blue-500",
+                    hoverShadow: "hover:shadow-blue-500/10",
+                    hoverText: "group-hover:text-blue-400",
+                    metrics: [
+                        { value: "$4.38bn", label: "Loan Volume" },
+                        { value: "$510M", label: "Mid-Income Deposits" }
+                    ],
+                    tags: ['SQL', 'Excel', 'Python', 'Power BI'],
+                    links: {
+                        github: "https://github.com/MohTarique/Banking_Loan_Analysis",
+                        readme: "https://github.com/MohTarique/Banking_Loan_Analysis/blob/main/README.md"
+                    }
+                },
+                {
+                    title: "World Population Prospects",
+                    desc: "Exploratory data analysis of global population trends, growth rates, and demographic shifts across 200+ nations.",
+                    image: "https://github.com/user-attachments/assets/cd79d3e3-d101-4472-9131-06e797c28140",
+                    icon: <Icons.Globe size={28} />,
+                    iconColor: "text-green-400",
+                    iconBg: "bg-green-500/10",
+                    hoverBorder: "hover:border-green-500",
+                    hoverShadow: "hover:shadow-green-500/10",
+                    hoverText: "group-hover:text-green-400",
+                    metrics: [
+                        { value: "230+", label: "Countries" },
+                        { value: "70 Yrs", label: "Historical Data" }
+                    ],
+                    tags: ['Excel', 'Python', 'Power BI'],
+                    links: {
+                        github: "https://github.com/MohTarique/World-Population-Prospects",
+                        readme: "https://github.com/MohTarique/World-Population-Prospects/blob/main/README.md"
+                    }
+                },
+                {
+                    title: "Seoul Bike Rental Demand",
+                    desc: "Predicting urban bike rental demand using weather and temporal data to optimize fleet management.",
+                    image: "https://github.com/MohTarique/Seoul-bike-rental-/blob/e533b0fa8670a9d4f96923dbdfff876cd8f69294/images_tableau/Dashboard%201.png?raw=true",
+                    icon: <Icons.MapIcon size={28} />,
+                    iconColor: "text-orange-400",
+                    iconBg: "bg-orange-500/10",
+                    hoverBorder: "hover:border-orange-500",
+                    hoverShadow: "hover:shadow-orange-500/10",
+                    hoverText: "group-hover:text-orange-400",
+                    metrics: [
+                        { value: "10 AM", label: "Minimum Traffic" },
+                        { value: "8,760", label: "Hours Data" }
+                    ],
+                    tags: ['SQL', 'Python', 'Tableau'],
+                    links: {
+                        github: "https://github.com/MohTarique/Seoul-bike-rental-"
+                    }
+                }
+            ];
+
+            const generateProjectArchitecture = async () => {
+                if (!aiInput.trim()) return;
+                
+                setAiLoading(true);
+                setAiError('');
+                setAiResult(null);
+
+                const userPrompt = `Topic: ${aiInput}`;
+
+                // Simulation mode for demo/standalone purposes
+                setTimeout(() => {
+                     setAiResult({
+                         title: `AI Analysis for ${aiInput}`,
+                         problem_statement: `Optimizing efficiency in the ${aiInput} sector using data-driven insights.`,
+                         hypothesis: "Implementing predictive modeling will reduce operational costs by 15%.",
+                         key_metrics: ["ROI", "Efficiency Rate", "Cost Reduction"],
+                         recommended_stack: ["Python", "SQL", "Tableau"],
+                         suggested_viz: "A dynamic dashboard showing real-time performance metrics."
+                     });
+                     setAiLoading(false);
+                }, 1500);
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-900 text-slate-200 font-sans selection:bg-teal-500 selection:text-white">
+                    {/* Navigation */}
+                    <nav className="fixed w-full z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between h-16">
+                                <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0,0)}>
+                                    <div className="w-8 h-8 bg-gradient-to-tr from-teal-400 to-blue-500 rounded-lg flex items-center justify-center">
+                                        <span className="font-bold text-white text-lg">M</span>
+                                    </div>
+                                    <span className="font-bold text-xl tracking-tight text-white">Moh Tarique</span>
+                                </div>
+                                
+                                {/* Desktop Nav */}
+                                <div className="hidden md:block">
+                                    <div className="ml-10 flex items-baseline space-x-4">
+                                        {navLinks.map((link) => (
+                                            <a
+                                                key={link.name}
+                                                href={link.href}
+                                                className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
+                                                    activeSection === link.href.substring(1)
+                                                        ? 'text-teal-400 bg-slate-800'
+                                                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                                                }`}
+                                            >
+                                                {link.name}
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Mobile menu button */}
+                                <div className="md:hidden">
+                                    <button
+                                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                        className="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none"
+                                    >
+                                        {isMenuOpen ? <Icons.X size={24} /> : <Icons.Menu size={24} />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Mobile Nav */}
+                        {isMenuOpen && (
+                            <div className="md:hidden bg-slate-900 border-b border-slate-800">
+                                <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                                    {navLinks.map((link) => (
+                                        <a
+                                            key={link.name}
+                                            href={link.href}
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800"
+                                        >
+                                            {link.name}
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </nav>
+
+                    {/* Hero Section */}
+                    <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden pt-16">
+                        <div className="absolute top-20 left-10 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+                        
+                        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+                            
+                            {/* Personal Image Container */}
+                            <div className="flex justify-center mb-8">
+                                <div className="w-48 h-48 md:w-64 md:h-64 rounded-full border-4 border-teal-500/30 p-1 shadow-xl overflow-hidden bg-slate-800 relative group">
+                                    {!imageError ? (
+                                        <img 
+                                            src="https://drive.google.com/thumbnail?id=1_WnBdBPmQdCzYe3dwNwDB44XQcDqU-d6&sz=w400" 
+                                            alt="Moh Tarique" 
+                                            className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500"
+                                            onError={() => setImageError(true)}
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-slate-700 flex items-center justify-center rounded-full text-slate-400">
+                                            <span className="text-4xl font-bold">MT</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-teal-500/0 group-hover:bg-teal-500/10 transition-colors rounded-full"></div>
+                                </div>
+                            </div>
+
+                            <div className="inline-block px-3 py-1 mb-4 text-xs font-semibold tracking-wider text-teal-400 uppercase bg-teal-400/10 rounded-full border border-teal-400/20">
+                                Available for Hire
+                            </div>
+                            <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight mb-6">
+                                Data Analyst <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-blue-500">& ML Enthusiast</span>
+                            </h1>
+                            <p className="mt-4 max-w-2xl mx-auto text-xl text-slate-400 font-bold">
+                                "Data is the new oil" — but only if you know how to refine it.
+                            </p>
+                            
+                            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+                                <a href="#projects" className="px-8 py-3 rounded-full bg-gradient-to-r from-teal-500 to-blue-600 text-white font-bold shadow-lg hover:shadow-teal-500/30 transition-all hover:-translate-y-1 flex items-center justify-center gap-2">
+                                    View My Work <Icons.BarChart2 size={18} />
+                                </a>
+                                <a href="https://drive.google.com/file/d/1TUgqstj9EYbREiUkWinixrnA3qlZ-L5X/view?usp=sharing" target="_blank" rel="noreferrer" className="px-8 py-3 rounded-full bg-slate-800 text-white font-bold border border-slate-700 hover:bg-slate-700 transition-all hover:-translate-y-1 flex items-center justify-center gap-2">
+                                    <Icons.Download size={18} /> Download Resume
+                                </a>
+                            </div>
+
+                            <div className="mt-12 flex justify-center gap-8 text-slate-500">
+                                <a href="https://github.com/MohTarique" target="_blank" rel="noreferrer" className="hover:text-teal-400 transition-colors transform hover:scale-110" title="GitHub">
+                                    <Icons.Github size={32} />
+                                </a>
+                                <a href="https://public.tableau.com/app/profile/moh.tarique.siddiqui/vizzes" target="_blank" rel="noreferrer" className="hover:text-orange-400 transition-colors transform hover:scale-110" title="Tableau Public">
+                                    <Icons.Tableau size={32} />
+                                </a>
+                                <a href="https://linkedin.com/in/mohtarique" target="_blank" rel="noreferrer" className="hover:text-blue-400 transition-colors transform hover:scale-110" title="LinkedIn">
+                                    <Icons.Linkedin size={32} />
+                                </a>
+                                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=tmoh882@gmail.com" target="_blank" rel="noreferrer" className="hover:text-pink-400 transition-colors transform hover:scale-110" title="Email">
+                                    <Icons.Mail size={32} />
+                                </a>
+                            </div>
+                            
+                            <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce text-slate-500">
+                                <Icons.ChevronDown size={24} />
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* About Section */}
+                    <section id="about" className="py-20 bg-slate-900 relative">
+                        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="bg-slate-800/50 rounded-2xl p-8 md:p-12 border border-slate-700/50 backdrop-blur-sm shadow-xl">
+                                <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+                                    <span className="w-1 h-8 bg-teal-500 rounded-full"></span>
+                                    About Me
+                                </h2>
+                                <div className="space-y-4 text-slate-300 leading-relaxed text-lg">
+                                    <p>
+                                        I’m a 2025 B.Tech graduate in Computer Science and Information Technology who enjoys solving problems, fixing things, and occasionally breaking them first to understand how they work.
+                                    </p>
+                                    <p>
+                                        I love exploring different areas of technology and building projects that are practical, creative, and fun to use.
+                                    </p>
+                                    <p>
+                                        Writing clean, readable code is important to me—mainly so future-me doesn’t file a complaint against present-me.
+                                    </p>
+                                    <p>
+                                        I value clear communication and teamwork, and I enjoy turning complex ideas into simple, understandable solutions.
+                                    </p>
+                                </div>
+                                
+                                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex items-center gap-3 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                                        <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                                            <Icons.BookOpen size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-white font-semibold">B.Tech CS & IT</h3>
+                                            <p className="text-sm text-slate-400">AKGEC Ghaziabad (2025)</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <a 
+                                        href="https://coursera.org/share/0c6e777916b8843bbc1bb2bce55b150b" 
+                                        target="_blank" 
+                                        rel="noreferrer"
+                                        className="flex items-center gap-3 p-4 bg-slate-900/50 rounded-lg border border-slate-700 hover:border-purple-500 hover:bg-slate-800 transition-all cursor-pointer group"
+                                    >
+                                        <div className="p-2 bg-purple-500/20 rounded-lg text-purple-400 group-hover:text-white group-hover:bg-purple-500 transition-colors">
+                                            <Icons.Award size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-white font-semibold group-hover:text-purple-300 transition-colors flex items-center gap-2">
+                                                Google Certified <Icons.ExternalLink size={14} />
+                                            </h3>
+                                            <p className="text-sm text-slate-400">Advanced Data Analytics</p>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Projects Section - Moved Up */}
+                    <section id="projects" className="py-20 bg-slate-900">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="text-center mb-12">
+                                <h2 className="text-3xl md:text-4xl font-bold text-white">Featured Projects</h2>
+                                <p className="mt-4 text-slate-400">Solving real-world problems with code and data.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {projects.map((project, index) => (
+                                    <div 
+                                        key={index} 
+                                        className={`group relative bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 ${project.hoverBorder} transition-all duration-300 hover:shadow-2xl ${project.hoverShadow} cursor-pointer`}
+                                        onClick={() => window.open(project.links.github, '_blank')}
+                                    >
+                                        
+                                        {project.image ? (
+                                            <div className="w-full h-48 overflow-hidden border-b border-slate-700">
+                                                <img 
+                                                    src={project.image} 
+                                                    alt={project.title} 
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-48 bg-slate-700/50 flex items-center justify-center border-b border-slate-700 group-hover:bg-slate-700 transition-colors">
+                                                <div className="flex flex-col items-center gap-2 text-slate-500">
+                                                    <Icons.ImageIcon size={32} />
+                                                    <span className="text-sm font-medium">Project Image Placeholder</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="p-8">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className={`p-3 ${project.iconBg} rounded-lg ${project.iconColor}`}>
+                                                    {project.icon}
+                                                </div>
+                                                <div className="flex gap-3">
+                                                    <a 
+                                                        href={project.links.github} 
+                                                        target="_blank" 
+                                                        rel="noreferrer" 
+                                                        className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 transition-colors"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        title="View Source Code"
+                                                    >
+                                                        <Icons.Github size={20} />
+                                                    </a>
+                                                    {project.links.live && (
+                                                        <a 
+                                                            href={project.links.live} 
+                                                            target="_blank" 
+                                                            rel="noreferrer" 
+                                                            className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 transition-colors"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            title="View Live Demo"
+                                                        >
+                                                            <Icons.ExternalLink size={20} />
+                                                        </a>
+                                                    )}
+                                                    {project.links.readme && (
+                                                        <a 
+                                                            href={project.links.readme} 
+                                                            target="_blank" 
+                                                            rel="noreferrer" 
+                                                            className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 transition-colors"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            title="View README Documentation"
+                                                        >
+                                                            <Icons.FileText size={20} />
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            <h3 className={`text-2xl font-bold text-white mb-2 ${project.hoverText} transition-colors`}>
+                                                {project.title}
+                                            </h3>
+                                            <p className="text-slate-400 mb-6">
+                                                {project.desc}
+                                            </p>
+
+                                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                                {project.metrics.map((metric, i) => (
+                                                    <div key={i} className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                                                        <div className="text-2xl font-bold text-white">{metric.value}</div>
+                                                        <div className="text-xs text-slate-500 uppercase tracking-wide">{metric.label}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2">
+                                                {project.tags.map((tag) => (
+                                                    <span key={tag} className="px-2 py-1 bg-slate-700 text-slate-300 text-xs rounded-md">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Skills Section */}
+                    <section id="skills" className="py-10 bg-slate-800/30">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="text-center mb-10">
+                                <h2 className="text-3xl md:text-4xl font-bold text-white">Technical Arsenal</h2>
+                                <p className="mt-4 text-slate-400">The tools and technologies I use to bring data to life.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {/* Languages Card */}
+                                <div className="bg-slate-900 rounded-xl p-6 border border-slate-800 hover:border-teal-500/50 transition-colors duration-300">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <Icons.Terminal className="text-teal-400" size={24} />
+                                        <h3 className="text-xl font-bold text-white">Languages</h3>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {skills.languages.map((skill) => (
+                                            <div key={skill.name}>
+                                                <div className="flex justify-between mb-1">
+                                                    <span className="text-slate-300 font-medium">{skill.name}</span>
+                                                    <span className="text-slate-500 text-sm">{skill.level}%</span>
+                                                </div>
+                                                <div className="w-full bg-slate-800 rounded-full h-2">
+                                                    <div className="bg-gradient-to-r from-teal-400 to-blue-500 h-2 rounded-full" style={{ width: `${skill.level}%` }}></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Libraries Card */}
+                                <div className="bg-slate-900 rounded-xl p-6 border border-slate-800 hover:border-blue-500/50 transition-colors duration-300">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <Icons.Code className="text-blue-400" size={24} />
+                                        <h3 className="text-xl font-bold text-white">Python Libraries</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {skills.libraries.map((lib) => (
+                                            <span key={lib} className="px-3 py-1 bg-blue-500/10 text-blue-300 rounded-full text-sm border border-blue-500/20">
+                                                {lib}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Tools & Concepts Card */}
+                                <div className="bg-slate-900 rounded-xl p-6 border border-slate-800 hover:border-purple-500/50 transition-colors duration-300 lg:col-span-1 md:col-span-2">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <Icons.Database className="text-purple-400" size={24} />
+                                        <h3 className="text-xl font-bold text-white">Tools & Concepts</h3>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h4 className="text-sm uppercase tracking-wider text-slate-500 mb-2">Tools</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {skills.tools.map((tool) => (
+                                                    <span key={tool} className="px-3 py-1 bg-purple-500/10 text-purple-300 rounded-full text-sm border border-purple-500/20">
+                                                        {tool}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm uppercase tracking-wider text-slate-500 mb-2">Concepts</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {skills.concepts.map((concept) => (
+                                                    <span key={concept} className="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm border border-slate-700">
+                                                        {concept}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* AI Architect Section */}
+                    <section id="ai-architect" className="py-20 bg-slate-800/30 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl"></div>
+
+                        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                            <div className="text-center mb-12">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 text-xs font-semibold tracking-wider text-purple-400 uppercase bg-purple-500/10 rounded-full border border-purple-500/20">
+                                    <Icons.Sparkles size={14} /> Powered by Gemini
+                                </div>
+                                <h2 className="text-3xl md:text-4xl font-bold text-white">AI Data Architect ✨</h2>
+                                <p className="mt-4 text-slate-400">
+                                    Challenge me! Enter a topic (e.g., "Coffee Shop Sales", "Sports Analytics"), and my AI agent will design a data project for it.
+                                </p>
+                            </div>
+
+                            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 md:p-8 shadow-2xl">
+                                {/* Input Area */}
+                                <div className="flex flex-col md:flex-row gap-4 mb-8">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Enter a topic (e.g., 'E-commerce Churn', 'Hospital Wait Times')..." 
+                                        className="flex-grow bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-500 transition-colors"
+                                        value={aiInput}
+                                        onChange={(e) => setAiInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && generateProjectArchitecture()}
+                                    />
+                                    <button 
+                                        onClick={generateProjectArchitecture}
+                                        disabled={aiLoading || !aiInput.trim()}
+                                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {aiLoading ? <Icons.Loader className="animate-spin" size={20} /> : <Icons.Zap size={20} />}
+                                        Generate Plan
+                                    </button>
+                                </div>
+
+                                {/* AI Output Area */}
+                                {aiResult && !aiLoading && (
+                                    <div className="animate-fadeIn">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <Icons.Bot className="text-purple-400" size={28} />
+                                            <h3 className="text-2xl font-bold text-white">{aiResult.title}</h3>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <h4 className="text-sm uppercase text-slate-500 font-semibold mb-2">Problem Statement</h4>
+                                                    <p className="text-slate-300">{aiResult.problem_statement}</p>
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-sm uppercase text-slate-500 font-semibold mb-2">Hypothesis</h4>
+                                                    <p className="text-slate-300 italic border-l-2 border-purple-500 pl-4">
+                                                        "{aiResult.hypothesis}"
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <h4 className="text-sm uppercase text-slate-500 font-semibold mb-2">Key Metrics (KPIs)</h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {aiResult.key_metrics?.map((metric, i) => (
+                                                            <span key={i} className="px-3 py-1 bg-slate-800 text-purple-300 rounded-md text-sm border border-purple-500/20">
+                                                                {metric}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div>
+                                                    <h4 className="text-sm uppercase text-slate-500 font-semibold mb-2">Recommended Stack</h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {aiResult.recommended_stack?.map((tool, i) => (
+                                                            <span key={i} className="flex items-center gap-1 px-3 py-1 bg-slate-800 text-teal-300 rounded-md text-sm border border-teal-500/20">
+                                                                <Icons.Cpu size={14} /> {tool}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6 pt-6 border-t border-slate-800">
+                                            <h4 className="text-sm uppercase text-slate-500 font-semibold mb-2">Suggested Visualization</h4>
+                                            <div className="bg-slate-800/50 p-4 rounded-lg flex items-start gap-3">
+                                                <Icons.BarChart2 className="text-blue-400 flex-shrink-0 mt-1" size={20} />
+                                                <p className="text-slate-300 text-sm">{aiResult.suggested_viz}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Certifications Section */}
+                    <section id="certifications" className="py-20 bg-slate-800/30">
+                        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <h2 className="text-3xl font-bold text-white text-center mb-12">Certifications & Learning</h2>
+                            
+                            <div className="space-y-4">
+                                {[
+                                    { 
+                                        title: 'Google Advanced Data Analytics', 
+                                        issuer: 'Coursera', 
+                                        date: '2025',
+                                        icon: <Icons.Database size={20} />,
+                                        color: 'text-yellow-400',
+                                        desc: 'PACE workflow, Python, Hypothesis Testing, ML',
+                                        link: 'https://coursera.org/share/0c6e777916b8843bbc1bb2bce55b150b'
+                                    },
+                                    { 
+                                        title: 'IBM SkillsBuild Internship', 
+                                        issuer: 'IBM & CSRBOX', 
+                                        date: '2024',
+                                        icon: <Icons.Brain size={20} />,
+                                        color: 'text-blue-400',
+                                        desc: 'AI-ML Kidney Stone Prediction Model using Watson',
+                                        link: 'https://drive.google.com/file/d/1OS6I4Uf8m5cLcESbY0hhKvP4DwKeIzKQ/view?usp=sharing'
+                                    },
+                                    { 
+                                        title: 'PostgreSQL Bootcamp', 
+                                        issuer: 'Udemy', 
+                                        date: '2025',
+                                        icon: <Icons.Database size={20} />,
+                                        color: 'text-teal-400',
+                                        desc: 'Advanced SQL, Window Functions, Indexing',
+                                        link: 'https://www.udemy.com/certificate/UC-3f679a6a-8fe8-414f-8825-d97f1584bffd/'
+                                    },
+                                    { 
+                                        title: 'Microsoft Power BI', 
+                                        issuer: 'Udemy', 
+                                        date: '2025',
+                                        icon: <Icons.BarChart2 size={20} />,
+                                        color: 'text-orange-400',
+                                        desc: 'DAX, Data Modeling, Dynamic Dashboards',
+                                        link: 'https://www.udemy.com/certificate/UC-baa327c5-e575-4e31-9a10-df2b0b34b83f/'
+                                    },
+                                    { 
+                                        title: 'Seaborn & Matplotlib', 
+                                        issuer: 'Udemy', 
+                                        date: '2025',
+                                        icon: <Icons.BarChart2 size={20} />,
+                                        color: 'text-purple-400',
+                                        desc: 'Statistical Analysis, Probability, Hypothesis Testing',
+                                        link: 'https://www.udemy.com/certificate/UC-ae4520b1-3823-4b94-9fee-9a106f226bd6/'
+                                    },
+                                ].map((cert, index) => (
+                                    <a 
+                                        key={index} 
+                                        href={cert.link}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex flex-col md:flex-row items-center bg-slate-900 p-6 rounded-lg border border-slate-800 hover:border-slate-600 transition-colors cursor-pointer group"
+                                    >
+                                        <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
+                                            <div className={`w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center ${cert.color}`}>
+                                                {cert.icon}
+                                            </div>
+                                        </div>
+                                        <div className="flex-grow text-center md:text-left">
+                                            <h3 className="text-lg font-bold text-white group-hover:text-teal-400 transition-colors">{cert.title}</h3>
+                                            <p className="text-slate-400 text-sm">{cert.issuer} • {cert.date}</p>
+                                        </div>
+                                        <div className="mt-2 md:mt-0 text-slate-500 text-sm md:text-right max-w-xs flex items-center justify-center md:justify-end gap-2">
+                                            <span>{cert.desc}</span>
+                                            <Icons.ExternalLink size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Footer / Contact */}
+                    <footer className="bg-slate-950 py-12 border-t border-slate-900">
+                        <div className="max-w-7xl mx-auto px-4 text-center">
+                            <h2 className="text-2xl font-bold text-white mb-6">Let's turn your data into decisions.</h2>
+                            <div className="flex justify-center gap-8 mb-8">
+                                <a href="mailto:tmoh882@gmail.com" className="flex items-center gap-2 text-slate-400 hover:text-teal-400 transition-colors">
+                                    <Icons.Mail size={20} /> tmoh882@gmail.com
+                                </a>
+                            </div>
+                            <div className="text-slate-600 text-sm">
+                                © 2025 Moh Tarique Siddiqui. Built with React & Tailwind.
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Portfolio />);
+    </script>
+</body>
+</html>
